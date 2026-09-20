@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "intervalHours": 6,
+  "initialSince": "2026-09-15T00:00:00.000Z",
+  "overlapHours": 48,
+  "requestTimeoutMs": 20000,
+  "sourceTimeoutMs": 120000,
+  "sources": [
+    {
+      "id": "qmuse",
+      "name": "QMuse / X 案例索引",
+      "type": "qmuse",
+      "enabled": true,
+      "url": "https://render.qmuse.pub/p/muse/8079593307628562/index.html",
+      "maxChunks": 12
+    },
+    {
+      "id": "github",
+      "name": "GitHub 开源项目",
+      "type": "github",
+      "enabled": true,
+      "query": "jev typesafe in:name,description fork:false",
+      "perPage": 100,
+      "maxPages": 3,
+      "maxRequests": 6
+    },
+    {
+      "id": "dev",
+      "name": "DEV 技术文章",
+      "type": "dev",
+      "enabled": true,
+      "tags": ["jev", "typesafe"],
+      "perPage": 100,
+      "maxPages": 3
+    },
+    {
+      "id": "hackernews",
+      "name": "Hacker News 分享",
+      "type": "hackernews",
+      "enabled": true,
+      "query": "jev",
+      "perPage": 100,
+      "maxPages": 3
+    }
+  ]
+}
