@@ -15,7 +15,7 @@ const record = (id = '1', fields = {}) => ({
 });
 const config = {
   schemaVersion: 1, intervalHours: 6, initialSince: '2026-09-15T00:00:00.000Z',
-  overlapHours: 48, sourceTimeoutMs: 1000,
+  overlapHours: 48, sourceTimeoutMs: 1000, excludeUrls: ['https://github.com/self/atlas'],
   sources: [{ id: 'a', name: 'A', type: 'fixture', enabled: true }, { id: 'b', name: 'B', type: 'fixture', enabled: true }],
 };
 
@@ -104,6 +104,18 @@ test('one failed source does not block successful sources, and watermarks advanc
   assert.equal(next.collection.sources.find(source => source.id === 'b').lastSuccessAt, t1);
   assert.deepEqual(await readJson(join(root, 'dist/data/source-cases.json')), next);
   assert.equal(next.collection.history.length, 1);
+});
+
+test('configured automated exclusions remove circular self-listings but not manually curated records', async t => {
+  const { root, file } = await fixture(t);
+  const data = await readJson(file);
+  data.records.push(record('self', { canonicalUrl: 'https://github.com/self/atlas', autoCollected: true }));
+  data.records.push(record('curated-self', { canonicalUrl: 'https://github.com/self/atlas', autoCollected: false }));
+  await writeFile(file, JSON.stringify(data));
+  await runCollector({ root, config, now: t1, adapters: { fixture: async () => ({ records: [], complete: true }) } });
+  const after = await readJson(file);
+  assert.equal(after.records.filter(item => item.canonicalUrl === 'https://github.com/self/atlas').length, 1);
+  assert.equal(after.records.find(item => item.canonicalUrl === 'https://github.com/self/atlas').id, 'curated-self');
 });
 
 test('all-source failure preserves content and content timestamp; dry run never commits', async t => {

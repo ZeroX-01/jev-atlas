@@ -23,7 +23,7 @@ if (args.includes('--help')) {
       dryRun: args.includes('--dry-run'),
       onProgress: message => console.log(`[${new Date().toISOString()}] ${message}`),
     });
-    console.log(JSON.stringify({ outcome: summary.outcome, added: summary.added, updated: summary.updated, total: summary.total, dryRun: args.includes('--dry-run') }));
+    console.log(JSON.stringify({ outcome: summary.outcome, added: summary.added, updated: summary.updated, removed: summary.removed, total: summary.total, dryRun: args.includes('--dry-run') }));
     if (summary.outcome === 'error') process.exitCode = 1;
   } catch (error) {
     console.error(safeError(error));

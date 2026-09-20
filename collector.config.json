@@ -5,6 +5,9 @@
   "overlapHours": 48,
   "requestTimeoutMs": 20000,
   "sourceTimeoutMs": 120000,
+  "excludeUrls": [
+    "https://github.com/ZeroX-01/jev-atlas"
+  ],
   "sources": [
     {
       "id": "qmuse",

@@ -21,8 +21,12 @@ export async function runCollector({ root, config, selectedSources, bundle, adap
     const previous = await readJson(file);
     if (previous.schemaVersion !== 1 || !Array.isArray(previous.records)) throw new Error('现有数据格式无效，停止以避免覆盖。');
     const curated = await readJson(join(root, 'src/data/supplemental.json'), []);
-    const excludedUrls = new Set(curated.map(item => canonicalKey(item.canonicalUrl)));
-    let records = previous.records;
+    const excludedUrls = new Set([
+      ...curated.map(item => canonicalKey(item.canonicalUrl)),
+      ...(config.excludeUrls || []).map(canonicalKey),
+    ].filter(Boolean));
+    let records = previous.records.filter(record => !(record.autoCollected && excludedUrls.has(canonicalKey(record.canonicalUrl))));
+    const removed = previous.records.length - records.length;
     const oldHealth = new Map((previous.collection?.sources || []).map(source => [source.id, source]));
     const health = new Map(oldHealth);
     const enabled = config.sources.filter(source => source.enabled && (!selectedSources || selectedSources.includes(source.id)));
@@ -69,7 +73,7 @@ export async function runCollector({ root, config, selectedSources, bundle, adap
     const anyProgress = current.some(source => source.status === 'ok' || source.discovered > 0);
     const complete = current.every(source => source.status === 'ok');
     const outcome = complete ? 'ok' : anyProgress ? 'partial' : 'error';
-    const summary = { startedAt: now, finishedAt: new Date().toISOString(), outcome, added, updated, total: records.length, sources: current.map(({ cursor, ...source }) => source) };
+    const summary = { startedAt: now, finishedAt: new Date().toISOString(), outcome, added, updated, removed, total: records.length, sources: current.map(({ cursor, ...source }) => source) };
     const next = {
       ...previous,
       collectedAt: anyProgress ? now : previous.collectedAt,
@@ -78,13 +82,13 @@ export async function runCollector({ root, config, selectedSources, bundle, adap
         schemaVersion: 1, intervalHours: config.intervalHours, lastRunAt: now,
         lastSuccessAt: complete ? now : previous.collection?.lastSuccessAt || null,
         lastContentChangeAt: added || updated ? now : previous.collection?.lastContentChangeAt || previous.collectedAt,
-        outcome, added, updated, sources: [...health.values()],
+        outcome, added, updated, removed, sources: [...health.values()],
         history: [summary, ...(previous.collection?.history || [])].slice(0, 40),
       },
     };
     if (!dryRun) {
       await mkdir(join(runtime, 'backups'), { recursive: true });
-      if (added || updated) await atomicJson(join(runtime, 'backups', `${now.replace(/[:.]/g, '-')}.json`), previous);
+      if (added || updated || removed) await atomicJson(join(runtime, 'backups', `${now.replace(/[:.]/g, '-')}.json`), previous);
       // One snapshot atomically commits both records and pagination/watermarks.
       await atomicJson(file, next);
       await mirrorData(root, next);

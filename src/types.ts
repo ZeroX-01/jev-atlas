@@ -65,5 +65,6 @@ export interface CollectionInfo {
   outcome: 'ok' | 'partial' | 'error';
   added: number;
   updated: number;
+  removed?: number;
   sources: CollectionSource[];
 }
